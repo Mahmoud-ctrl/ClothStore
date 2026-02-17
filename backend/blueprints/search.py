@@ -137,7 +137,6 @@ def filtered_search():
     sizes_param = request.args.get('sizes')
     if sizes_param:
         sizes_list = [s.strip() for s in sizes_param.split(',')]
-        # Check if product has ANY of the requested sizes
         size_filters = [Product.sizes.contains([size]) for size in sizes_list]
         query = query.filter(or_(*size_filters))
     
@@ -145,7 +144,6 @@ def filtered_search():
     colors_param = request.args.get('colors')
     if colors_param:
         colors_list = [c.strip() for c in colors_param.split(',')]
-        # Check if product has ANY of the requested colors
         color_filters = [Product.colors.contains([color]) for color in colors_list]
         query = query.filter(or_(*color_filters))
     
@@ -234,14 +232,12 @@ def get_filter_options():
     """
     query = Product.query
     
-    # Filter by gender if provided
     gender_slug = request.args.get('gender')
     if gender_slug:
         query = query.join(ProductType).join(Gender).filter(
             Gender.slug == gender_slug
         )
     
-    # Filter by product type if provided
     product_type_slug = request.args.get('product_type')
     if product_type_slug:
         query = query.join(ProductType).filter(
@@ -250,7 +246,6 @@ def get_filter_options():
     
     products = query.all()
     
-    # Collect all unique sizes and colors
     all_sizes = set()
     all_colors = set()
     
@@ -260,7 +255,6 @@ def get_filter_options():
         if p.colors:
             all_colors.update(p.colors)
     
-    # Get price range
     price_query = query.with_entities(
         func.min(Product.price).label('min_price'),
         func.max(Product.price).label('max_price')
@@ -273,4 +267,34 @@ def get_filter_options():
             'min': float(price_query.min_price) if price_query.min_price else 0,
             'max': float(price_query.max_price) if price_query.max_price else 0
         }
+    }), 200
+
+
+# ==================== GENDER HERO IMAGE ====================
+@search_bp.route('/gender-hero/<string:gender_slug>', methods=['GET'])
+def get_gender_hero(gender_slug):
+    """
+    Returns the most recently added product that has at least one image,
+    for a given gender slug. Used to power the mega-menu hero image.
+    """
+    product = (
+        Product.query
+        .join(ProductType)
+        .join(Gender)
+        .filter(
+            Gender.slug == gender_slug,
+            Product.images != None,
+            func.array_length(Product.images, 1) > 0
+        )
+        .order_by(Product.created_at.desc())
+        .first()
+    )
+
+    if not product:
+        return jsonify({'image': None, 'title': None, 'product_type': None}), 200
+
+    return jsonify({
+        'image': product.images[0],
+        'title': product.title,
+        'product_type': product.product_type.name,
     }), 200

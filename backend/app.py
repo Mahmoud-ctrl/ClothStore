@@ -14,6 +14,7 @@ from blueprints.products import product_bp
 from blueprints.category import category_bp
 from blueprints.orders import order_bp
 from blueprints.search import search_bp
+from blueprints.admin_dashboard import dashboard_bp
 
 app = Flask(__name__)
 
@@ -37,7 +38,7 @@ CORS(
             "origins": [
                 "http://localhost:8080",
                 "http://192.168.0.110:8080",
-                "https://bdf85afea6ae.ngrok-free.app"
+                "https://fashionhub12.netlify.app"
             ],
             "allow_headers": ["Authorization", "Content-Type", "X-CSRF-TOKEN"],
             "expose_headers": ["Authorization"],
@@ -83,6 +84,7 @@ app.register_blueprint(product_bp)
 app.register_blueprint(category_bp)
 app.register_blueprint(order_bp)
 app.register_blueprint(search_bp)
+app.register_blueprint(dashboard_bp)
 
 if __name__ == "__main__":
     with app.app_context():
